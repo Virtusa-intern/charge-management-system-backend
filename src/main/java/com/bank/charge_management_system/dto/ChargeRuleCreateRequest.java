@@ -1,0 +1,58 @@
+package com.bank.charge_management_system.dto;
+
+import com.bank.charge_management_system.entity.ChargeRule;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Map;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ChargeRuleCreateRequest {
+    
+    @NotBlank(message = "Rule code is required")
+    @Size(max = 10, message = "Rule code must not exceed 10 characters")
+    @Pattern(regexp = "^[0-9A-Z]+$", message = "Rule code must contain only numbers and uppercase letters")
+    private String ruleCode;
+    
+    @NotBlank(message = "Rule name is required")
+    @Size(max = 100, message = "Rule name must not exceed 100 characters")
+    private String ruleName;
+    
+    @NotNull(message = "Category is required")
+    private ChargeRule.Category category;
+    
+    @NotNull(message = "Activity type is required")
+    private ChargeRule.ActivityType activityType;
+    
+    @NotNull(message = "Conditions are required")
+    private Map<String, Object> conditions;
+    
+    @NotNull(message = "Fee type is required")
+    private ChargeRule.FeeType feeType;
+    
+    @NotNull(message = "Fee value is required")
+    @DecimalMin(value = "0.0", inclusive = true, message = "Fee value must be non-negative")
+    @Digits(integer = 6, fraction = 4, message = "Fee value must have at most 6 integer and 4 decimal places")
+    private BigDecimal feeValue;
+    
+    private String currencyCode = "INR";
+    
+    @DecimalMin(value = "0.0", inclusive = true, message = "Minimum amount must be non-negative")
+    private BigDecimal minAmount = BigDecimal.ZERO;
+    
+    private BigDecimal maxAmount;
+    
+    @Min(value = 0, message = "Threshold count must be non-negative")
+    private Integer thresholdCount = 0;
+    
+    private ChargeRule.ThresholdPeriod thresholdPeriod = ChargeRule.ThresholdPeriod.MONTHLY;
+    
+    private LocalDateTime effectiveFrom;
+    private LocalDateTime effectiveTo;
+}
