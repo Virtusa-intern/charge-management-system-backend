@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.HashMap;
 
 @RestController
@@ -291,23 +292,28 @@ public class ChargeRuleController {
      * Get available enum values for dropdowns
      * GET /api/rules/metadata
      */
-    @GetMapping("/metadata")
-    public ResponseEntity<ApiResponse<RuleMetadata>> getRuleMetadata() {
-        try {
-            RuleMetadata metadata = new RuleMetadata();
-            metadata.setCategories(ChargeRule.Category.values());
-            metadata.setActivityTypes(ChargeRule.ActivityType.values());
-            metadata.setFeeTypes(ChargeRule.FeeType.values());
-            metadata.setThresholdPeriods(ChargeRule.ThresholdPeriod.values());
-            metadata.setStatuses(ChargeRule.Status.values());
+        @GetMapping("/metadata")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> getRuleMetadata() {
+            Map<String, Object> metadata = new HashMap<>();
+            
+            // Available statuses
+            List<String> statuses = Arrays.asList("ACTIVE", "DRAFT", "INACTIVE", "ARCHIVED");
+            metadata.put("statuses", statuses);
+            
+            // Available categories
+            List<String> categories = Arrays.asList("RETAIL_BANKING", "CORP_BANKING", "ALL");
+            metadata.put("categories", categories);
+            
+            // Available activity types
+            List<String> activityTypes = Arrays.asList("UNIT_WISE", "RANGE_BASED", "MONTHLY", "SPECIAL", "ADHOC");
+            metadata.put("activityTypes", activityTypes);
+            
+            // Available fee types
+            List<String> feeTypes = Arrays.asList("PERCENTAGE", "FLAT_AMOUNT", "TIERED");
+            metadata.put("feeTypes", feeTypes);
             
             return ResponseEntity.ok(ApiResponse.success("Metadata retrieved successfully", metadata));
-            
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Failed to retrieve metadata: " + e.getMessage(), 500));
         }
-    }
 
     /**
      * Validate rule conditions

@@ -31,7 +31,7 @@ public class TransactionRequest {
     
     private String currencyCode = "INR";
     
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", shape = JsonFormat.Shape.STRING, timezone = "UTC")
     private LocalDateTime transactionDate;
     
     private String channel; // ATM, ONLINE, BRANCH, MOBILE, API
@@ -56,5 +56,10 @@ public class TransactionRequest {
     public TransactionRequest(String transactionId, String customerCode, String transactionType, BigDecimal amount, String channel) {
         this(transactionId, customerCode, transactionType, amount);
         this.channel = channel;
+    }
+
+    // Ensure transactionDate is set if not provided
+    public LocalDateTime getTransactionDate() {
+        return transactionDate != null ? transactionDate : LocalDateTime.now();
     }
 }

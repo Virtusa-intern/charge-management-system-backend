@@ -90,4 +90,4 @@ public interface ChargeRuleRepository extends JpaRepository<ChargeRule, Long> {
        @Param("category") ChargeRule.Category category, 
        @Param("search") String search
        );
-}
+}      
