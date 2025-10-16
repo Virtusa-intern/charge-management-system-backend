@@ -1,8 +1,5 @@
 package com.bank.charge_management_system.dto;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.math.BigDecimal;
@@ -10,11 +7,96 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChargeCalculationResult {
     
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
+
+    public String getCustomerCode() {
+        return customerCode;
+    }
+
+    public void setCustomerCode(String customerCode) {
+        this.customerCode = customerCode;
+    }
+
+    public String getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(String transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    public BigDecimal getTransactionAmount() {
+        return transactionAmount;
+    }
+
+    public void setTransactionAmount(BigDecimal transactionAmount) {
+        this.transactionAmount = transactionAmount;
+    }
+
+    public List<ChargeCalculationDetail> getCalculatedCharges() {
+        return calculatedCharges;
+    }
+
+    public void setCalculatedCharges(List<ChargeCalculationDetail> calculatedCharges) {
+        this.calculatedCharges = calculatedCharges;
+    }
+
+    public BigDecimal getTotalCharges() {
+        return totalCharges;
+    }
+
+    public void setTotalCharges(BigDecimal totalCharges) {
+        this.totalCharges = totalCharges;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public LocalDateTime getCalculationTimestamp() {
+        return calculationTimestamp;
+    }
+
+    public void setCalculationTimestamp(LocalDateTime calculationTimestamp) {
+        this.calculationTimestamp = calculationTimestamp;
+    }
+
+    public int getApplicableRulesCount() {
+        return applicableRulesCount;
+    }
+
+    public void setApplicableRulesCount(int applicableRulesCount) {
+        this.applicableRulesCount = applicableRulesCount;
+    }
+
+    public String getCalculationSummary() {
+        return calculationSummary;
+    }
+
+    public void setCalculationSummary(String calculationSummary) {
+        this.calculationSummary = calculationSummary;
+    }
+
     private String transactionId;
     private String customerCode;
     private String transactionType;

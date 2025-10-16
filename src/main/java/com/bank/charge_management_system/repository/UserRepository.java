@@ -1,10 +1,7 @@
-// src/main/java/com/bank/charge_management_system/repository/UserRepository.java
 package com.bank.charge_management_system.repository;
 
 import com.bank.charge_management_system.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -24,21 +21,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     
     /**
-     * Find users by role
-     */
-    List<User> findByRole(User.Role role);
-    
-    /**
-     * Find active users
-     */
-    List<User> findByIsActive(Boolean isActive);
-    
-    /**
-     * Find users by role and active status
-     */
-    List<User> findByRoleAndIsActive(User.Role role, Boolean isActive);
-    
-    /**
      * Check if username exists
      */
     boolean existsByUsername(String username);
@@ -49,14 +31,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     
     /**
-     * Search users by name or username
+     * Find all users by role
      */
-    @Query("SELECT u FROM User u WHERE " +
-           "LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
-    List<User> searchUsers(@Param("searchTerm") String searchTerm);
+    List<User> findByRole(User.Role role);
+    
+    /**
+     * Find all active users
+     */
+    List<User> findByIsActive(Boolean isActive);
+    
+    /**
+     * Find all users by role and active status
+     */
+    List<User> findByRoleAndIsActive(User.Role role, Boolean isActive);
     
     /**
      * Count users by role
@@ -67,15 +54,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Count active users
      */
     long countByIsActive(Boolean isActive);
-    
-    /**
-     * Find all active users ordered by creation date
-     */
-    List<User> findByIsActiveTrueOrderByCreatedAtDesc();
-    
-    /**
-     * Get user statistics
-     */
-    @Query("SELECT u.role, COUNT(u) FROM User u GROUP BY u.role")
-    List<Object[]> getUserStatisticsByRole();
 }

@@ -1,154 +1,108 @@
-package com.bank.charge_management_system.entity;
+package com.bank.charge_management_system.dto;
 
-import jakarta.persistence.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "users")
-@EntityListeners(AuditingEntityListener.class)
-public class User {
+/**
+ * DTO for User responses
+ * Password is never included in response for security
+ */
+public class UserDto {
     
     public Long getId() {
         return id;
     }
-
     public void setId(Long id) {
         this.id = id;
     }
-
     public String getUsername() {
         return username;
     }
-
     public void setUsername(String username) {
         this.username = username;
     }
-
     public String getEmail() {
         return email;
     }
-
     public void setEmail(String email) {
         this.email = email;
     }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
     public String getFirstName() {
         return firstName;
     }
-
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
-
     public String getLastName() {
         return lastName;
     }
-
     public void setLastName(String lastName) {
         this.lastName = lastName;
     }
-
-    public Role getRole() {
+    public String getFullName() {
+        return fullName;
+    }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+    public String getRole() {
         return role;
     }
-
-    public void setRole(Role role) {
+    public void setRole(String role) {
         this.role = role;
     }
-
     public Boolean getIsActive() {
         return isActive;
     }
-
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
     }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
-
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
-
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-
     public Long getCreatedBy() {
         return createdBy;
     }
-
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
     }
-
     public Long getUpdatedBy() {
         return updatedBy;
     }
-
     public void setUpdatedBy(Long updatedBy) {
         this.updatedBy = updatedBy;
     }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(unique = true, nullable = false, length = 50)
     private String username;
-    
-    @Column(unique = true, nullable = false, length = 100)
     private String email;
-    
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
-    
-    @Column(name = "first_name", nullable = false, length = 50)
     private String firstName;
-    
-    @Column(name = "last_name", nullable = false, length = 50)
     private String lastName;
+    private String fullName; // Computed field: firstName + lastName
     
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role = Role.RULE_VIEWER;
+    // Role as string for frontend
+    private String role;
     
-    @Column(name = "is_active")
-    private Boolean isActive = true;
+    private Boolean isActive;
     
-    @CreatedDate
-    @Column(name = "created_at", updatable = false)
+    // Audit fields
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
     
-    @LastModifiedDate
-    @Column(name = "updated_at")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
     
-    @Column(name = "created_by")
     private Long createdBy;
-    
-    @Column(name = "updated_by")
     private Long updatedBy;
     
-    public enum Role {
-        ADMIN, RULE_CREATOR, RULE_APPROVER, RULE_VIEWER
-    }
+    // Note: Password is NEVER included in DTO for security reasons
 }

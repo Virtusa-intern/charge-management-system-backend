@@ -1,8 +1,5 @@
 package com.bank.charge_management_system.dto;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.math.BigDecimal;
@@ -12,12 +9,121 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class BulkChargeCalculationResult {
     
     private int totalTransactions = 0;
+    public int getTotalTransactions() {
+        return totalTransactions;
+    }
+
+    public void setTotalTransactions(int totalTransactions) {
+        this.totalTransactions = totalTransactions;
+    }
+
+    public int getSuccessfulCalculations() {
+        return successfulCalculations;
+    }
+
+    public void setSuccessfulCalculations(int successfulCalculations) {
+        this.successfulCalculations = successfulCalculations;
+    }
+
+    public int getFailedCalculations() {
+        return failedCalculations;
+    }
+
+    public void setFailedCalculations(int failedCalculations) {
+        this.failedCalculations = failedCalculations;
+    }
+
+    public List<ChargeCalculationResult> getResults() {
+        return results;
+    }
+
+    public void setResults(List<ChargeCalculationResult> results) {
+        this.results = results;
+    }
+
+    public Map<String, String> getErrors() {
+        return errors;
+    }
+
+    public void setErrors(Map<String, String> errors) {
+        this.errors = errors;
+    }
+
+    public BigDecimal getTotalChargesCalculated() {
+        return totalChargesCalculated;
+    }
+
+    public void setTotalChargesCalculated(BigDecimal totalChargesCalculated) {
+        this.totalChargesCalculated = totalChargesCalculated;
+    }
+
+    public LocalDateTime getProcessingTimestamp() {
+        return processingTimestamp;
+    }
+
+    public void setProcessingTimestamp(LocalDateTime processingTimestamp) {
+        this.processingTimestamp = processingTimestamp;
+    }
+
+    public boolean isOverallSuccess() {
+        return overallSuccess;
+    }
+
+    public void setOverallSuccess(boolean overallSuccess) {
+        this.overallSuccess = overallSuccess;
+    }
+
+    public String getProcessingMessage() {
+        return processingMessage;
+    }
+
+    public void setProcessingMessage(String processingMessage) {
+        this.processingMessage = processingMessage;
+    }
+
+    public long getProcessingTimeMs() {
+        return processingTimeMs;
+    }
+
+    public void setProcessingTimeMs(long processingTimeMs) {
+        this.processingTimeMs = processingTimeMs;
+    }
+
+    public String getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Map<String, Integer> getTransactionTypeCount() {
+        return transactionTypeCount;
+    }
+
+    public void setTransactionTypeCount(Map<String, Integer> transactionTypeCount) {
+        this.transactionTypeCount = transactionTypeCount;
+    }
+
+    public Map<String, BigDecimal> getChargesByRule() {
+        return chargesByRule;
+    }
+
+    public void setChargesByRule(Map<String, BigDecimal> chargesByRule) {
+        this.chargesByRule = chargesByRule;
+    }
+
     private int successfulCalculations = 0;
     private int failedCalculations = 0;
     

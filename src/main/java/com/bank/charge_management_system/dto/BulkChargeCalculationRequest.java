@@ -2,18 +2,52 @@ package com.bank.charge_management_system.dto;
 
 import jakarta.validation.constraints.*;
 import jakarta.validation.Valid;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 import java.util.List;
 import java.util.ArrayList;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class BulkChargeCalculationRequest {
     
+    public List<TransactionRequest> getTransactions() {
+        return transactions;
+    }
+
+    public void setTransactions(List<TransactionRequest> transactions) {
+        this.transactions = transactions;
+    }
+
+    public boolean isSaveResults() {
+        return saveResults;
+    }
+
+    public void setSaveResults(boolean saveResults) {
+        this.saveResults = saveResults;
+    }
+
+    public boolean isStopOnError() {
+        return stopOnError;
+    }
+
+    public void setStopOnError(boolean stopOnError) {
+        this.stopOnError = stopOnError;
+    }
+
+    public String getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     @NotNull(message = "Transactions are required")
     @Size(min = 1, max = 100, message = "Bulk calculation supports 1-100 transactions")
     @Valid

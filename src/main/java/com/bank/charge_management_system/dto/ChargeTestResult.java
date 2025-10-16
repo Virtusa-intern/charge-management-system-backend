@@ -1,8 +1,5 @@
 package com.bank.charge_management_system.dto;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.math.BigDecimal;
@@ -10,11 +7,96 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChargeTestResult {
     
+    public String getCustomerCode() {
+        return customerCode;
+    }
+
+    public void setCustomerCode(String customerCode) {
+        this.customerCode = customerCode;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
+    public String getCustomerType() {
+        return customerType;
+    }
+
+    public void setCustomerType(String customerType) {
+        this.customerType = customerType;
+    }
+
+    public List<TransactionTestResult> getTransactionResults() {
+        return transactionResults;
+    }
+
+    public void setTransactionResults(List<TransactionTestResult> transactionResults) {
+        this.transactionResults = transactionResults;
+    }
+
+    public BigDecimal getTotalChargesAcrossAllTransactions() {
+        return totalChargesAcrossAllTransactions;
+    }
+
+    public void setTotalChargesAcrossAllTransactions(BigDecimal totalChargesAcrossAllTransactions) {
+        this.totalChargesAcrossAllTransactions = totalChargesAcrossAllTransactions;
+    }
+
+    public int getTotalTransactionsTested() {
+        return totalTransactionsTested;
+    }
+
+    public void setTotalTransactionsTested(int totalTransactionsTested) {
+        this.totalTransactionsTested = totalTransactionsTested;
+    }
+
+    public int getTransactionsWithCharges() {
+        return transactionsWithCharges;
+    }
+
+    public void setTransactionsWithCharges(int transactionsWithCharges) {
+        this.transactionsWithCharges = transactionsWithCharges;
+    }
+
+    public LocalDateTime getTestTimestamp() {
+        return testTimestamp;
+    }
+
+    public void setTestTimestamp(LocalDateTime testTimestamp) {
+        this.testTimestamp = testTimestamp;
+    }
+
+    public boolean isTestSuccessful() {
+        return testSuccessful;
+    }
+
+    public void setTestSuccessful(boolean testSuccessful) {
+        this.testSuccessful = testSuccessful;
+    }
+
+    public String getTestSummary() {
+        return testSummary;
+    }
+
+    public void setTestSummary(String testSummary) {
+        this.testSummary = testSummary;
+    }
+
+    public String getTestDescription() {
+        return testDescription;
+    }
+
+    public void setTestDescription(String testDescription) {
+        this.testDescription = testDescription;
+    }
+
     private String customerCode;
     private String customerName;
     private String customerType; // RETAIL, CORPORATE
@@ -32,15 +114,92 @@ public class ChargeTestResult {
     private String testSummary;
     private String testDescription;
     
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class TransactionTestResult {
         private String transactionType;
         private BigDecimal transactionAmount;
         private String channel;
         private String description;
         
+        public String getTransactionType() {
+            return transactionType;
+        }
+
+        public void setTransactionType(String transactionType) {
+            this.transactionType = transactionType;
+        }
+
+        public BigDecimal getTransactionAmount() {
+            return transactionAmount;
+        }
+
+        public void setTransactionAmount(BigDecimal transactionAmount) {
+            this.transactionAmount = transactionAmount;
+        }
+
+        public String getChannel() {
+            return channel;
+        }
+
+        public void setChannel(String channel) {
+            this.channel = channel;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public List<ChargeCalculationDetail> getApplicableCharges() {
+            return applicableCharges;
+        }
+
+        public void setApplicableCharges(List<ChargeCalculationDetail> applicableCharges) {
+            this.applicableCharges = applicableCharges;
+        }
+
+        public BigDecimal getTotalChargeForTransaction() {
+            return totalChargeForTransaction;
+        }
+
+        public void setTotalChargeForTransaction(BigDecimal totalChargeForTransaction) {
+            this.totalChargeForTransaction = totalChargeForTransaction;
+        }
+
+        public int getRulesApplied() {
+            return rulesApplied;
+        }
+
+        public void setRulesApplied(int rulesApplied) {
+            this.rulesApplied = rulesApplied;
+        }
+
+        public String getCalculationSummary() {
+            return calculationSummary;
+        }
+
+        public void setCalculationSummary(String calculationSummary) {
+            this.calculationSummary = calculationSummary;
+        }
+
+        public boolean isCalculationSuccessful() {
+            return calculationSuccessful;
+        }
+
+        public void setCalculationSuccessful(boolean calculationSuccessful) {
+            this.calculationSuccessful = calculationSuccessful;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+
+        public void setErrorMessage(String errorMessage) {
+            this.errorMessage = errorMessage;
+        }
+
         private List<ChargeCalculationDetail> applicableCharges = new ArrayList<>();
         private BigDecimal totalChargeForTransaction = BigDecimal.ZERO;
         private int rulesApplied = 0;

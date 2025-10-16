@@ -30,6 +30,8 @@ public class ChargeCalculationService {
     @Autowired
     private CustomerRepository customerRepository;
 
+    private ThreadLocal<Map<String, Map<String, Integer>>> inMemoryTransactionCounts = ThreadLocal.withInitial(HashMap::new);
+
     /**
      * Calculate charges for a single transaction
      */
@@ -99,7 +101,7 @@ public class ChargeCalculationService {
                 case "002":
                     return calculateRule002_MonthlySavings(request, customer, rule);
                 case "003":
-                    return calculateRule003_CorporateAccount(request, customer);
+                    return calculateRule003_CorporateAccount(request, customer, rule);
                 case "007":
                     return calculateRule007_ATMOtherBank(request, customer);
                 case "008":
@@ -162,17 +164,21 @@ public class ChargeCalculationService {
     }
 
     /**
-     * Rule 003: Monthly Charges - Current Account (Corporate) = 5% of monthly average
+     * Rule 003: Bi-Monthly Charges - Current Account (Corporate) = 5% of bi-monthly average
      */
-    private BigDecimal calculateRule003_CorporateAccount(TransactionRequest request, Customer customer) {
-        if (customer.getCustomerType() != Customer.CustomerType.CORPORATE) {
+    private BigDecimal calculateRule003_CorporateAccount(TransactionRequest request, Customer customer, ChargeRule rule) {
+        if (customer.getCustomerType() != Customer.CustomerType.CORPORATE || !"CORPORATE_BI_MONTHLY_CHARGE".equals(request.getTransactionType())) {
+            return BigDecimal.ZERO;
+        }
+
+        LocalDate sixtyDaysAgo = LocalDate.now().minusDays(60);
+        boolean alreadyCharged = chargeCalculationRepository.existsBiMonthlyChargeForCustomerAndRule(customer.getId(), rule.getId(), sixtyDaysAgo);
+        if (alreadyCharged) {
             return BigDecimal.ZERO;
         }
         
-        // TODO: Calculate actual monthly average from transactions
-        // For now, using mock data
-        BigDecimal mockMonthlyAverage = BigDecimal.valueOf(100000);
-        return mockMonthlyAverage
+        BigDecimal averageBalance = transactionRepository.getAverageBalanceForLastTwoMonths(customer.getId());
+        return averageBalance
             .multiply(BigDecimal.valueOf(5))
             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
@@ -222,11 +228,12 @@ public class ChargeCalculationService {
             return BigDecimal.ZERO;
         }
         
-        int monthlyCount = transactionRepository.getMonthlyTransactionCountByType(
-            customer.getId(), "FUNDS_TRANSFER");
-        
-        // FIXED: Changed from >= 10 to >= 11 to respect Rule 008 (free up to 10)
-        return (monthlyCount >= 11 && monthlyCount <= 30) ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
+        int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "FUNDS_TRANSFER");
+        int memoryCount = getInMemoryTransactionCount(customer.getId(), "FUNDS_TRANSFER");
+        int totalCount = dbCount + memoryCount;
+
+        // Rule 009: Transactions 11-30 charge ₹100 (count 10-29)
+        return (totalCount >= 10 && totalCount < 30) ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
     }
 
     /**
@@ -238,11 +245,12 @@ public class ChargeCalculationService {
             return BigDecimal.ZERO;
         }
         
-        int monthlyCount = transactionRepository.getMonthlyTransactionCountByType(
-            customer.getId(), "FUNDS_TRANSFER");
-        
-        // FIXED: Changed from >= 30 to >= 31 to avoid overlap with Rule 009
-        return (monthlyCount >= 31 && monthlyCount <= 50) ? BigDecimal.valueOf(150) : BigDecimal.ZERO;
+        int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "FUNDS_TRANSFER");
+        int memoryCount = getInMemoryTransactionCount(customer.getId(), "FUNDS_TRANSFER");
+        int totalCount = dbCount + memoryCount;
+
+        // Rule 010: Transactions 31-50 charge ₹150 (count 30-49)
+        return (totalCount >= 30 && totalCount < 50) ? BigDecimal.valueOf(150) : BigDecimal.ZERO;
     }
 
     /**
@@ -254,11 +262,12 @@ public class ChargeCalculationService {
             return BigDecimal.ZERO;
         }
         
-        int monthlyCount = transactionRepository.getMonthlyTransactionCountByType(
-            customer.getId(), "FUNDS_TRANSFER");
-        
-        // FIXED: Changed from >= 50 to >= 51 to avoid overlap with Rule 010
-        return monthlyCount >= 51 ? BigDecimal.valueOf(300) : BigDecimal.ZERO;
+        int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "FUNDS_TRANSFER");
+        int memoryCount = getInMemoryTransactionCount(customer.getId(), "FUNDS_TRANSFER");
+        int totalCount = dbCount + memoryCount;
+
+        // Rule 011: Transactions 51+ charge ₹300 (count 50+)
+        return totalCount >= 50 ? BigDecimal.valueOf(300) : BigDecimal.ZERO;
     }
 
     /**
@@ -295,8 +304,9 @@ public class ChargeCalculationService {
         testResult.setCustomerCode(request.getCustomerCode());
         testResult.setTestTimestamp(LocalDateTime.now());
         testResult.setTestDescription(request.getTestDescription());
-        
+
         try {
+            inMemoryTransactionCounts.set(new HashMap<>()); // Clear/init at start
             Customer customer = customerRepository.findByCustomerCode(request.getCustomerCode())
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + request.getCustomerCode()));
             
@@ -351,6 +361,8 @@ public class ChargeCalculationService {
         } catch (Exception e) {
             testResult.setTestSuccessful(false);
             testResult.setTestSummary("Test failed: " + e.getMessage());
+        } finally {
+            inMemoryTransactionCounts.remove(); // Clear at end
         }
         
         return testResult;
@@ -366,6 +378,7 @@ public class ChargeCalculationService {
         bulkResult.setDescription(request.getDescription());
         
         try {
+            inMemoryTransactionCounts.set(new HashMap<>()); // Clear/init at start
             for (TransactionRequest txRequest : request.getTransactions()) {
                 try {
                     ChargeCalculationResult result = calculateChargesForTransaction(txRequest);
@@ -390,6 +403,8 @@ public class ChargeCalculationService {
         } catch (Exception e) {
             bulkResult.setOverallSuccess(false);
             bulkResult.setProcessingMessage("Bulk processing failed: " + e.getMessage());
+        } finally {
+            inMemoryTransactionCounts.remove(); // Clear at the end
         }
         
         long endTime = System.currentTimeMillis();
@@ -563,5 +578,23 @@ public class ChargeCalculationService {
         scenario.put("channel", channel);
         scenario.put("description", description);
         return scenario;
+    }
+
+    private void incrementInMemoryCount(Long customerId, String transactionType) {
+        Map<String, Map<String, Integer>> customerCounts = inMemoryTransactionCounts.get();
+        if (customerCounts == null) {
+            customerCounts = new HashMap<>();
+            inMemoryTransactionCounts.set(customerCounts);
+        }
+        Map<String, Integer> transactionCounts = customerCounts.computeIfAbsent(String.valueOf(customerId), k -> new HashMap<>());
+        transactionCounts.put(transactionType, transactionCounts.getOrDefault(transactionType, 0) + 1);
+    }
+
+    private int getInMemoryTransactionCount(Long customerId, String transactionType) {
+        Map<String, Map<String, Integer>> customerCounts = inMemoryTransactionCounts.get();
+        if (customerCounts == null) {
+            return 0;
+        }
+        return customerCounts.getOrDefault(String.valueOf(customerId), Collections.emptyMap()).getOrDefault(transactionType, 0);
     }
 }

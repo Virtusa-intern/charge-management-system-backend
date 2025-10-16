@@ -92,4 +92,16 @@ public interface ChargeCalculationRepository extends JpaRepository<ChargeCalcula
         @Param("customerId") Long customerId,
         @Param("ruleId") Long ruleId
     );
+
+    @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
+           "JOIN Transaction t ON cc.transactionId = t.id " +
+           "WHERE t.customerId = :customerId AND " +
+           "cc.ruleId = :ruleId AND " +
+           "cc.createdAt >= :startDate AND " +
+           "cc.status != 'REVERSED'")
+    boolean existsBiMonthlyChargeForCustomerAndRule(
+        @Param("customerId") Long customerId,
+        @Param("ruleId") Long ruleId,
+        @Param("startDate") LocalDate startDate
+    );
 }

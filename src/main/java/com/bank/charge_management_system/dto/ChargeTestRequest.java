@@ -2,19 +2,45 @@ package com.bank.charge_management_system.dto;
 
 import jakarta.validation.constraints.*;
 import jakarta.validation.Valid;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.ArrayList;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChargeTestRequest {
     
+    public String getCustomerCode() {
+        return customerCode;
+    }
+
+    public void setCustomerCode(String customerCode) {
+        this.customerCode = customerCode;
+    }
+
+    public List<TestTransaction> getTestTransactions() {
+        return testTransactions;
+    }
+
+    public void setTestTransactions(List<TestTransaction> testTransactions) {
+        this.testTransactions = testTransactions;
+    }
+
+    public boolean isSaveResults() {
+        return saveResults;
+    }
+
+    public void setSaveResults(boolean saveResults) {
+        this.saveResults = saveResults;
+    }
+
+    public String getTestDescription() {
+        return testDescription;
+    }
+
+    public void setTestDescription(String testDescription) {
+        this.testDescription = testDescription;
+    }
+
     @NotBlank(message = "Customer code is required")
     private String customerCode;
     
@@ -26,9 +52,6 @@ public class ChargeTestRequest {
     private boolean saveResults = false; // Whether to save results to database
     private String testDescription; // Optional description for the test
     
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class TestTransaction {
         @NotBlank(message = "Transaction type is required")
         private String transactionType;
@@ -43,6 +66,54 @@ public class ChargeTestRequest {
         private String sourceAccount;
         private String destinationAccount;
         
+        public String getTransactionType() {
+            return transactionType;
+        }
+
+        public void setTransactionType(String transactionType) {
+            this.transactionType = transactionType;
+        }
+
+        public BigDecimal getAmount() {
+            return amount;
+        }
+
+        public void setAmount(BigDecimal amount) {
+            this.amount = amount;
+        }
+
+        public String getChannel() {
+            return channel;
+        }
+
+        public void setChannel(String channel) {
+            this.channel = channel;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public String getSourceAccount() {
+            return sourceAccount;
+        }
+
+        public void setSourceAccount(String sourceAccount) {
+            this.sourceAccount = sourceAccount;
+        }
+
+        public String getDestinationAccount() {
+            return destinationAccount;
+        }
+
+        public void setDestinationAccount(String destinationAccount) {
+            this.destinationAccount = destinationAccount;
+        }
+
         // Constructor for easy test creation
         public TestTransaction(String transactionType, BigDecimal amount, String description) {
             this.transactionType = transactionType;

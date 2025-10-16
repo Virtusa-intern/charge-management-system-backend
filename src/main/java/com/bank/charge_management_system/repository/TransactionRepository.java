@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -81,4 +82,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     );
 
     boolean existsByTransactionId(String transactionId);
+
+    /**
+     * Get average balance for the last two months (placeholder)
+     */
+    default BigDecimal getAverageBalanceForLastTwoMonths(@Param("customerId") Long customerId) {
+        // This is a placeholder implementation
+        return new BigDecimal("150000.00");
+    }
 }

@@ -1,17 +1,58 @@
 package com.bank.charge_management_system.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
 import java.time.LocalDateTime;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ApiResponse<T> {
     
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public T getData() {
+        return data;
+    }
+
+    public void setData(T data) {
+        this.data = data;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public Integer getErrorCode() {
+        return errorCode;
+    }
+
+    public void setErrorCode(Integer errorCode) {
+        this.errorCode = errorCode;
+    }
+
     private boolean success;
     private String message;
     private T data;
@@ -21,6 +62,10 @@ public class ApiResponse<T> {
     
     private String error;
     private Integer errorCode;
+
+    public ApiResponse() {
+        // Default constructor needed for frameworks and the error(String, T) static method
+    }
     
     // Success response constructors
     public ApiResponse(T data) {
@@ -71,7 +116,7 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> error(String error, T data) {
-        ApiResponse<T> response = new ApiResponse<>();
+        ApiResponse<T> response = new ApiResponse<T>();
         response.setSuccess(false);
         response.setError(error);
         response.setMessage("Operation failed");
