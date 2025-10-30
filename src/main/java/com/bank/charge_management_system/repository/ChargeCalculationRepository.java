@@ -82,18 +82,6 @@ public interface ChargeCalculationRepository extends JpaRepository<ChargeCalcula
     List<ChargeCalculation> findPendingChargesForSettlement();
 
     @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
-       "JOIN Transaction t ON cc.transactionId = t.id " +
-       "WHERE t.customerId = :customerId AND " +
-       "cc.ruleId = :ruleId AND " +
-       "MONTH(cc.createdAt) = MONTH(CURRENT_DATE) AND " +
-       "YEAR(cc.createdAt) = YEAR(CURRENT_DATE) AND " +
-       "cc.status != 'REVERSED'")
-    boolean existsMonthlyChargeForCustomerAndRule(
-        @Param("customerId") Long customerId,
-        @Param("ruleId") Long ruleId
-    );
-
-    @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
            "JOIN Transaction t ON cc.transactionId = t.id " +
            "WHERE t.customerId = :customerId AND " +
            "cc.ruleId = :ruleId AND " +
@@ -104,4 +92,29 @@ public interface ChargeCalculationRepository extends JpaRepository<ChargeCalcula
         @Param("ruleId") Long ruleId,
         @Param("startDate") LocalDate startDate
     );
+
+    /**
+     * Check if monthly charge already exists for customer and rule in current month
+     */
+    @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
+           "JOIN Transaction t ON cc.transactionId = t.id " +
+           "WHERE t.customerId = :customerId AND " +
+           "cc.ruleId = :ruleId AND " +
+           "YEAR(cc.createdAt) = YEAR(CURRENT_DATE) AND " +
+           "MONTH(cc.createdAt) = MONTH(CURRENT_DATE) AND " +
+           "cc.status != 'REVERSED'")
+    boolean existsMonthlyChargeForCustomerAndRule(
+        @Param("customerId") Long customerId,
+        @Param("ruleId") Long ruleId
+    );
+
+    /**
+     * Get top rules by usage count
+     */
+    @Query("SELECT r.ruleCode, r.ruleName, COUNT(cc) as usageCount " +
+           "FROM ChargeCalculation cc " +
+           "JOIN ChargeRule r ON cc.ruleId = r.id " +
+           "GROUP BY r.id, r.ruleCode, r.ruleName " +
+           "ORDER BY usageCount DESC")
+    List<Object[]> findTopRulesByUsage();
 }

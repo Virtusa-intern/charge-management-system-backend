@@ -9,6 +9,7 @@ import com.bank.charge_management_system.repository.SettlementRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -32,8 +33,10 @@ public class SettlementController {
     /**
      * Get all settlements
      * GET /api/settlements
+     * Accessible by: RULE_CREATOR, RULE_APPROVER, VIEWER
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
     public ResponseEntity<ApiResponse<List<SettlementRequest>>> getAllSettlements() {
         try {
             List<SettlementRequest> settlements = settlementRepository.findAll();
@@ -47,8 +50,10 @@ public class SettlementController {
     /**
      * Get settlement by ID
      * GET /api/settlements/{id}
+     * Accessible by: RULE_CREATOR, RULE_APPROVER, VIEWER
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
     public ResponseEntity<ApiResponse<SettlementRequest>> getSettlementById(@PathVariable Long id) {
         try {
             SettlementRequest settlement = settlementRepository.findById(id)
@@ -67,8 +72,10 @@ public class SettlementController {
     /**
      * Get settlements by customer code
      * GET /api/settlements/customer/{customerCode}
+     * Accessible by: RULE_CREATOR, RULE_APPROVER, VIEWER
      */
     @GetMapping("/customer/{customerCode}")
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
     public ResponseEntity<ApiResponse<List<SettlementRequest>>> getSettlementsByCustomer(
             @PathVariable String customerCode) {
         try {
@@ -89,8 +96,10 @@ public class SettlementController {
     /**
      * Get settlements by status
      * GET /api/settlements/status/{status}
+     * Accessible by: RULE_CREATOR, RULE_APPROVER, VIEWER
      */
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
     public ResponseEntity<ApiResponse<List<SettlementRequest>>> getSettlementsByStatus(
             @PathVariable String status) {
         try {
@@ -110,8 +119,11 @@ public class SettlementController {
     /**
      * Create new settlement request
      * POST /api/settlements
+     * Accessible by: RULE_CREATOR, RULE_APPROVER only
+     * ADMIN is DENIED - separation of duties (admins manage system, not financial operations)
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER')")
     public ResponseEntity<ApiResponse<SettlementRequest>> createSettlement(
             @RequestBody Map<String, Object> request) {
         try {
@@ -162,8 +174,10 @@ public class SettlementController {
     /**
      * Approve settlement request
      * POST /api/settlements/{id}/approve
+     * Accessible by: RULE_APPROVER only (requires approval authority)
      */
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasRole('RULE_APPROVER')")
     public ResponseEntity<ApiResponse<SettlementRequest>> approveSettlement(@PathVariable Long id) {
         try {
             SettlementRequest settlement = settlementRepository.findById(id)
@@ -194,8 +208,10 @@ public class SettlementController {
     /**
      * Cancel settlement request
      * POST /api/settlements/{id}/cancel
+     * Accessible by: RULE_CREATOR, RULE_APPROVER
      */
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER')")
     public ResponseEntity<ApiResponse<SettlementRequest>> cancelSettlement(@PathVariable Long id) {
         try {
             SettlementRequest settlement = settlementRepository.findById(id)
@@ -223,8 +239,10 @@ public class SettlementController {
     /**
      * Get settlement statistics
      * GET /api/settlements/statistics
+     * Accessible by: RULE_CREATOR, RULE_APPROVER, VIEWER
      */
     @GetMapping("/statistics")
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSettlementStatistics() {
         try {
             Map<String, Object> statistics = new HashMap<>();

@@ -6,6 +6,7 @@ import com.bank.charge_management_system.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ import java.util.Arrays;
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8081"})
+@PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
     @Autowired
@@ -29,8 +31,10 @@ public class UserController {
     /**
      * Get all users
      * GET /api/users
+     * Only ADMIN can manage users
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
         try {
             List<UserDto> users = userService.getAllUsers();
@@ -46,6 +50,7 @@ public class UserController {
      * GET /api/users/{id}
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserDto>> getUserById(@PathVariable Long id) {
         try {
             Optional<UserDto> user = userService.getUserById(id);

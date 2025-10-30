@@ -1,6 +1,7 @@
 package com.bank.charge_management_system.config;
 
 import com.bank.charge_management_system.security.JwtAuthenticationFilter;
+import com.bank.charge_management_system.security.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,11 +32,14 @@ import java.util.Arrays;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    @Autowired
-    private UserDetailsService userDetailsService;
+    private final UserDetailsServiceImpl userDetailsServiceImpl;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    public SecurityConfig(UserDetailsServiceImpl userDetailsServiceImpl, JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.userDetailsServiceImpl = userDetailsServiceImpl;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     /**
      * Password encoder bean - BCrypt for secure password hashing
@@ -51,7 +55,7 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setUserDetailsService(userDetailsServiceImpl);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
@@ -95,26 +99,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/welcome").permitAll()
+                .requestMatchers("/api/database/**").permitAll()
                 
-                // Admin-only endpoints
-                .requestMatchers("/api/users/**").hasRole("ADMIN")
-                
-                // Rule management - different roles
-                .requestMatchers("/api/rules/*/approve").hasAnyRole("ADMIN", "RULE_APPROVER")
-                .requestMatchers("/api/rules/*/deactivate").hasAnyRole("ADMIN", "RULE_APPROVER")
-                .requestMatchers("/api/rules/*/reactivate").hasAnyRole("ADMIN", "RULE_APPROVER")
-                .requestMatchers("/api/rules/create").hasAnyRole("ADMIN", "RULE_CREATOR")
-                .requestMatchers("/api/rules/*/update").hasAnyRole("ADMIN", "RULE_CREATOR")
-                .requestMatchers("/api/rules/*/delete").hasRole("ADMIN")
-                .requestMatchers("/api/rules/**").hasAnyRole("ADMIN", "RULE_CREATOR", "RULE_APPROVER", "RULE_VIEWER")
-                
-                // Charge calculation - all authenticated users
-                .requestMatchers("/api/charges/**").authenticated()
-                
-                // Settlement management
-                .requestMatchers("/api/settlements/**").hasAnyRole("ADMIN", "RULE_APPROVER")
-                
-                // All other requests must be authenticated
+                // All other endpoints use @PreAuthorize annotations in controllers
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

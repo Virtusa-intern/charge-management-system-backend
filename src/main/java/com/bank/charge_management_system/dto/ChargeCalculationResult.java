@@ -41,6 +41,14 @@ public class ChargeCalculationResult {
         this.transactionAmount = transactionAmount;
     }
 
+    public String getChannel() {
+        return channel;
+    }
+
+    public void setChannel(String channel) {
+        this.channel = channel;
+    }
+
     public List<ChargeCalculationDetail> getCalculatedCharges() {
         return calculatedCharges;
     }
@@ -101,6 +109,7 @@ public class ChargeCalculationResult {
     private String customerCode;
     private String transactionType;
     private BigDecimal transactionAmount;
+    private String channel; // Store the channel from request
     
     private List<ChargeCalculationDetail> calculatedCharges = new ArrayList<>();
     private BigDecimal totalCharges = BigDecimal.ZERO;

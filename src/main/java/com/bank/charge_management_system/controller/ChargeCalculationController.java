@@ -2,27 +2,43 @@
 package com.bank.charge_management_system.controller;
 
 import com.bank.charge_management_system.dto.*;
+import com.bank.charge_management_system.entity.ChargeCalculation;
+import com.bank.charge_management_system.entity.Transaction;
+import com.bank.charge_management_system.repository.ChargeCalculationRepository;
+import com.bank.charge_management_system.repository.TransactionRepository;
 import com.bank.charge_management_system.service.ChargeCalculationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/charges")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8081"})
+@PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
 public class ChargeCalculationController {
 
     @Autowired
     private ChargeCalculationService chargeCalculationService;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private ChargeCalculationRepository chargeCalculationRepository;
 
     /**
      * Calculate charges for a single transaction
@@ -308,15 +324,61 @@ public class ChargeCalculationController {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // This would typically query the database for actual statistics
-            // For now, providing sample structure
-            statistics.put("totalCalculationsToday", 0);
-            statistics.put("totalChargesCalculated", BigDecimal.ZERO);
-            statistics.put("averageChargePerTransaction", BigDecimal.ZERO);
-            statistics.put("mostUsedRules", new ArrayList<>());
-            statistics.put("popularTransactionTypes", new HashMap<>());
+            // Get real statistics from database
+            long totalTransactions = transactionRepository.count();
+            long totalChargeCalculations = chargeCalculationRepository.count();
+            
+            // Get today's transactions
+            LocalDateTime startOfDay = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
+            long transactionsToday = transactionRepository.countByCreatedAtAfter(startOfDay);
+            
+            // Get total charges amount
+            BigDecimal totalCharges = chargeCalculationRepository.findAll().stream()
+                .map(ChargeCalculation::getCalculatedAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            // Get average charge
+            BigDecimal averageCharge = totalChargeCalculations > 0 
+                ? totalCharges.divide(BigDecimal.valueOf(totalChargeCalculations), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+            
+            // Get most used rules
+            List<Object[]> topRules = chargeCalculationRepository.findTopRulesByUsage();
+            List<Map<String, Object>> mostUsedRules = topRules.stream()
+                .limit(5)
+                .map(result -> {
+                    Map<String, Object> rule = new HashMap<>();
+                    rule.put("ruleCode", result[0]);
+                    rule.put("ruleName", result[1]);
+                    rule.put("usageCount", result[2]);
+                    return rule;
+                })
+                .collect(Collectors.toList());
+            
+            // Get transaction type distribution
+            Map<String, Long> transactionTypes = transactionRepository.findAll().stream()
+                .collect(Collectors.groupingBy(Transaction::getTransactionType, Collectors.counting()));
+            
+            // Get this month's statistics
+            LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+            long transactionsThisMonth = transactionRepository.countByCreatedAtAfter(startOfMonth);
+            
+            BigDecimal chargesThisMonth = chargeCalculationRepository.findAll().stream()
+                .filter(c -> c.getCreatedAt().isAfter(startOfMonth))
+                .map(ChargeCalculation::getCalculatedAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            statistics.put("totalTransactions", totalTransactions);
+            statistics.put("totalChargeCalculations", totalChargeCalculations);
+            statistics.put("transactionsToday", transactionsToday);
+            statistics.put("transactionsThisMonth", transactionsThisMonth);
+            statistics.put("totalChargesCollected", totalCharges);
+            statistics.put("chargesThisMonth", chargesThisMonth);
+            statistics.put("averageChargePerTransaction", averageCharge);
+            statistics.put("mostUsedRules", mostUsedRules);
+            statistics.put("transactionTypeDistribution", transactionTypes);
             statistics.put("systemStatus", "OPERATIONAL");
-            statistics.put("lastCalculationTime", LocalDateTime.now());
+            statistics.put("lastUpdated", LocalDateTime.now());
             
             return ResponseEntity.ok(ApiResponse.success("Statistics retrieved successfully", statistics));
             
@@ -358,6 +420,57 @@ public class ChargeCalculationController {
             
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ApiResponse.error("Charge calculation service is unhealthy", healthStatus));
+        }
+    }
+
+    @GetMapping("/history/{customerCode}")
+    public ResponseEntity<ApiResponse<List<TransactionHistoryDto>>> getTransactionHistory(@PathVariable String customerCode) {
+        try {
+            List<TransactionHistoryDto> history = chargeCalculationService.getTransactionHistory(customerCode);
+            return ResponseEntity.ok(ApiResponse.success("Transaction history retrieved successfully", history));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage(), 400));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve transaction history: " + e.getMessage(), 500));
+        }
+    }
+
+    /**
+     * Get paginated and filtered transaction history
+     */
+    @GetMapping("/history/{customerCode}/paged")
+    public ResponseEntity<ApiResponse<PagedResponse<TransactionHistoryDto>>> getTransactionHistoryPaged(
+            @PathVariable String customerCode,
+            @RequestParam(required = false) String transactionType,
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "transactionDate") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        try {
+            Page<TransactionHistoryDto> historyPage = chargeCalculationService.getTransactionHistoryPaged(
+                    customerCode, transactionType, channel, status, startDate, endDate, page, size, sortBy, sortDir
+            );
+
+            PagedResponse<TransactionHistoryDto> response = new PagedResponse<>(
+                    historyPage.getContent(),
+                    historyPage.getNumber(),
+                    historyPage.getSize(),
+                    historyPage.getTotalElements(),
+                    historyPage.getTotalPages()
+            );
+
+            return ResponseEntity.ok(ApiResponse.success("Transaction history retrieved successfully", response));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage(), 400));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve transaction history: " + e.getMessage(), 500));
         }
     }
 

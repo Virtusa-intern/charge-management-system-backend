@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -30,9 +31,11 @@ public class ChargeRuleController {
     private ChargeRuleService chargeRuleService;
 
     /**
-     * Get all charge rules with combined filtering - FINAL VERSION  
+     * Get all charge rules with combined filtering - FINAL VERSION
+     * Accessible by all roles except ADMIN
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
     public ResponseEntity<ApiResponse<List<ChargeRuleDto>>> getAllRules(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String category,
@@ -50,11 +53,12 @@ public class ChargeRuleController {
                 .body(ApiResponse.error("Failed to retrieve rules: " + e.getMessage(), 500));
         }
     }
-        /**
-         * Get rule by ID
+    /**
+     * Get rule by ID
      * GET /api/rules/{id}
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
     public ResponseEntity<ApiResponse<ChargeRuleDto>> getRuleById(@PathVariable Long id) {
         try {
             Optional<ChargeRuleDto> rule = chargeRuleService.getRuleById(id);
@@ -77,6 +81,7 @@ public class ChargeRuleController {
      * GET /api/rules/code/{ruleCode}
      */
     @GetMapping("/code/{ruleCode}")
+    @PreAuthorize("hasAnyRole('RULE_CREATOR', 'RULE_APPROVER', 'VIEWER')")
     public ResponseEntity<ApiResponse<ChargeRuleDto>> getRuleByCode(@PathVariable String ruleCode) {
         try {
             Optional<ChargeRuleDto> rule = chargeRuleService.getRuleByCode(ruleCode);
@@ -97,8 +102,10 @@ public class ChargeRuleController {
     /**
      * Create new charge rule
      * POST /api/rules
+     * Only RULE_CREATOR can create rules
      */
     @PostMapping
+    @PreAuthorize("hasRole('RULE_CREATOR')")
     public ResponseEntity<ApiResponse<ChargeRuleDto>> createRule(
             @Valid @RequestBody ChargeRuleCreateRequest request,
             BindingResult bindingResult) {
@@ -130,8 +137,10 @@ public class ChargeRuleController {
     /**
      * Update existing charge rule
      * PUT /api/rules/{id}
+     * Only RULE_CREATOR can update rules
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('RULE_CREATOR')")
     public ResponseEntity<ApiResponse<ChargeRuleDto>> updateRule(
             @PathVariable Long id, 
             @Valid @RequestBody ChargeRuleUpdateRequest request,
@@ -163,8 +172,10 @@ public class ChargeRuleController {
     /**
      * Delete charge rule
      * DELETE /api/rules/{id}
+     * Only RULE_CREATOR can delete rules
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('RULE_CREATOR')")
     public ResponseEntity<ApiResponse<String>> deleteRule(@PathVariable Long id) {
         try {
             chargeRuleService.deleteRule(id);
@@ -182,8 +193,10 @@ public class ChargeRuleController {
     /**
      * Approve charge rule (DRAFT -> ACTIVE)
      * POST /api/rules/{id}/approve
+     * Only RULE_APPROVER can approve rules
      */
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasRole('RULE_APPROVER')")
     public ResponseEntity<ApiResponse<ChargeRuleDto>> approveRule(@PathVariable Long id) {
         try {
             ChargeRuleDto approvedRule = chargeRuleService.approveRule(id);
@@ -201,8 +214,10 @@ public class ChargeRuleController {
     /**
      * Deactivate charge rule (ACTIVE -> INACTIVE)
      * POST /api/rules/{id}/deactivate
+     * Only RULE_APPROVER can deactivate rules
      */
     @PostMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('RULE_APPROVER')")
     public ResponseEntity<ApiResponse<ChargeRuleDto>> deactivateRule(@PathVariable Long id) {
         try {
             ChargeRuleDto deactivatedRule = chargeRuleService.deactivateRule(id);
@@ -220,8 +235,10 @@ public class ChargeRuleController {
     /**
      * Reactivate inactive rule (INACTIVE -> ACTIVE)
      * POST /api/rules/{id}/reactivate
+     * Only RULE_APPROVER can reactivate rules
      */
     @PostMapping("/{id}/reactivate")
+    @PreAuthorize("hasRole('RULE_APPROVER')")
     public ResponseEntity<ApiResponse<ChargeRuleDto>> reactivateRule(@PathVariable Long id) {
         try {
             ChargeRuleDto reactivatedRule = chargeRuleService.reactivateRule(id);

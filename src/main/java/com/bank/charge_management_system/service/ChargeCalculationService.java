@@ -4,6 +4,10 @@ import com.bank.charge_management_system.dto.*;
 import com.bank.charge_management_system.entity.*;
 import com.bank.charge_management_system.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,9 +45,14 @@ public class ChargeCalculationService {
         result.setCustomerCode(request.getCustomerCode());
         result.setTransactionType(request.getTransactionType());
         result.setTransactionAmount(request.getAmount());
+        result.setChannel(request.getChannel()); // Set the channel from request
         result.setCalculationTimestamp(LocalDateTime.now());
         
         try {
+            if (inMemoryTransactionCounts.get() == null) {
+                inMemoryTransactionCounts.set(new HashMap<>());
+            }
+
             validateTransactionRequest(request);
             
             Customer customer = customerRepository.findByCustomerCode(request.getCustomerCode())
@@ -80,6 +89,15 @@ public class ChargeCalculationService {
             result.setSuccess(true);
             result.setMessage("Charges calculated successfully");
             result.generateSummary();
+
+            try {
+            saveChargeCalculationResults(result);
+            System.out.println("✅ Transaction saved to database: " + request.getTransactionId());
+            } catch (Exception saveEx) {
+                System.err.println("⚠️ Warning: Could not save transaction: " + saveEx.getMessage());
+                // Don't fail the calculation if save fails
+            }
+
             
         } catch (Exception e) {
             result.setSuccess(false);
@@ -137,15 +155,19 @@ public class ChargeCalculationService {
             return BigDecimal.ZERO;
         }
         
-        int monthlyCount = transactionRepository.getMonthlyTransactionCountByType(
-            customer.getId(), "ATM_WITHDRAWAL_PARENT");
+        int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "ATM_WITHDRAWAL_PARENT");
+        int memoryCount = getInMemoryTransactionCount(customer.getId(), "ATM_WITHDRAWAL_PARENT");
+        int totalCount = dbCount + memoryCount + 1;
         
         // Charge applies AFTER 20 withdrawals (i.e., on 21st and onwards)
-        if (monthlyCount >= 20) {
+        if (totalCount > 20) {
+            incrementInMemoryCount(customer.getId(), "ATM_WITHDRAWAL_PARENT");
             return request.getAmount()
                 .multiply(BigDecimal.valueOf(2))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         }
+        
+        incrementInMemoryCount(customer.getId(), "ATM_WITHDRAWAL_PARENT");
         return BigDecimal.ZERO;
     }
 
@@ -153,26 +175,43 @@ public class ChargeCalculationService {
      * Rule 002: Monthly Charges - Savings Account = ₹25/month
      */
     private BigDecimal calculateRule002_MonthlySavings(TransactionRequest request, Customer customer, ChargeRule rule) {
+        // ✅ FIX: Only apply for specific transaction type
+        if (!"MONTHLY_SAVINGS_CHARGE".equals(request.getTransactionType())) {
+            return BigDecimal.ZERO;
+        }
+        
         if (customer.getCustomerType() != Customer.CustomerType.RETAIL) {
             return BigDecimal.ZERO;
         }
         
+        // Check if already charged this month
         boolean alreadyCharged = chargeCalculationRepository.existsMonthlyChargeForCustomerAndRule(
             customer.getId(), rule.getId());
         
-        return alreadyCharged ? BigDecimal.ZERO : BigDecimal.valueOf(25);
+        if (alreadyCharged) {
+            return BigDecimal.ZERO;
+        }
+        
+        return BigDecimal.valueOf(25);
     }
 
     /**
      * Rule 003: Bi-Monthly Charges - Current Account (Corporate) = 5% of bi-monthly average
      */
     private BigDecimal calculateRule003_CorporateAccount(TransactionRequest request, Customer customer, ChargeRule rule) {
-        if (customer.getCustomerType() != Customer.CustomerType.CORPORATE || !"CORPORATE_BI_MONTHLY_CHARGE".equals(request.getTransactionType())) {
+        // ✅ FIX: Only apply for specific transaction type
+        if (!"CORPORATE_BI_MONTHLY_CHARGE".equals(request.getTransactionType())) {
+            return BigDecimal.ZERO;
+        }
+        
+        if (customer.getCustomerType() != Customer.CustomerType.CORPORATE) {
             return BigDecimal.ZERO;
         }
 
         LocalDate sixtyDaysAgo = LocalDate.now().minusDays(60);
-        boolean alreadyCharged = chargeCalculationRepository.existsBiMonthlyChargeForCustomerAndRule(customer.getId(), rule.getId(), sixtyDaysAgo);
+        boolean alreadyCharged = chargeCalculationRepository.existsBiMonthlyChargeForCustomerAndRule(
+            customer.getId(), rule.getId(), sixtyDaysAgo);
+        
         if (alreadyCharged) {
             return BigDecimal.ZERO;
         }
@@ -191,15 +230,19 @@ public class ChargeCalculationService {
             return BigDecimal.ZERO;
         }
         
-        int monthlyCount = transactionRepository.getMonthlyTransactionCountByType(
-            customer.getId(), "ATM_WITHDRAWAL_OTHER");
+        int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "ATM_WITHDRAWAL_OTHER");
+        int memoryCount = getInMemoryTransactionCount(customer.getId(), "ATM_WITHDRAWAL_OTHER");
+        int totalCount = dbCount + memoryCount + 1; // ✅ +1
         
         // Charge applies AFTER 5 withdrawals (i.e., on 6th and onwards)
-        if (monthlyCount >= 5) {
+        if (totalCount > 5) {
+            incrementInMemoryCount(customer.getId(), "ATM_WITHDRAWAL_OTHER");
             return request.getAmount()
                 .multiply(BigDecimal.valueOf(10))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         }
+        
+        incrementInMemoryCount(customer.getId(), "ATM_WITHDRAWAL_OTHER");
         return BigDecimal.ZERO;
     }
 
@@ -208,15 +251,12 @@ public class ChargeCalculationService {
      * FIXED: Returns ZERO for transactions 1-10
      */
     private BigDecimal calculateRule008_FundsTransferFree(TransactionRequest request, Customer customer) {
-        if (!"FUNDS_TRANSFER".equals(request.getTransactionType())) {
-            return BigDecimal.ZERO;
-        }
+        int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "FUNDS_TRANSFER");
+        int memoryCount = getInMemoryTransactionCount(customer.getId(), "FUNDS_TRANSFER");
+        int totalCount = dbCount + memoryCount + 1; // +1 for CURRENT transaction
         
-        int monthlyCount = transactionRepository.getMonthlyTransactionCountByType(
-            customer.getId(), "FUNDS_TRANSFER");
-        
-        // First 10 transfers are free (transactions 1-10)
-        return monthlyCount < 10 ? BigDecimal.ZERO : BigDecimal.ZERO;
+        // First 10 are FREE (transactions 1-10)
+        return totalCount <= 10 ? BigDecimal.ZERO : BigDecimal.ZERO; // Still returns 0, but logic is clear
     }
 
     /**
@@ -224,16 +264,12 @@ public class ChargeCalculationService {
      * FIXED: Now correctly charges on transactions 11-30 (inclusive)
      */
     private BigDecimal calculateRule009_FundsTransferStandard(TransactionRequest request, Customer customer) {
-        if (!"FUNDS_TRANSFER".equals(request.getTransactionType())) {
-            return BigDecimal.ZERO;
-        }
-        
         int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "FUNDS_TRANSFER");
         int memoryCount = getInMemoryTransactionCount(customer.getId(), "FUNDS_TRANSFER");
-        int totalCount = dbCount + memoryCount;
-
-        // Rule 009: Transactions 11-30 charge ₹100 (count 10-29)
-        return (totalCount >= 10 && totalCount < 30) ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
+        int totalCount = dbCount + memoryCount + 1; // +1 for CURRENT transaction
+        
+        // Transactions 11-30 charge ₹100
+        return (totalCount >= 11 && totalCount <= 30) ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
     }
 
     /**
@@ -241,16 +277,12 @@ public class ChargeCalculationService {
      * FIXED: Now correctly charges on transactions 31-50 (inclusive)
      */
     private BigDecimal calculateRule010_FundsTransferHigh(TransactionRequest request, Customer customer) {
-        if (!"FUNDS_TRANSFER".equals(request.getTransactionType())) {
-            return BigDecimal.ZERO;
-        }
-        
         int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "FUNDS_TRANSFER");
         int memoryCount = getInMemoryTransactionCount(customer.getId(), "FUNDS_TRANSFER");
-        int totalCount = dbCount + memoryCount;
-
-        // Rule 010: Transactions 31-50 charge ₹150 (count 30-49)
-        return (totalCount >= 30 && totalCount < 50) ? BigDecimal.valueOf(150) : BigDecimal.ZERO;
+        int totalCount = dbCount + memoryCount + 1; // +1 for CURRENT transaction
+        
+        // Transactions 31-50 charge ₹150
+        return (totalCount >= 31 && totalCount <= 50) ? BigDecimal.valueOf(150) : BigDecimal.ZERO;
     }
 
     /**
@@ -258,16 +290,12 @@ public class ChargeCalculationService {
      * FIXED: Now correctly charges on transactions 51+ (inclusive)
      */
     private BigDecimal calculateRule011_FundsTransferPremium(TransactionRequest request, Customer customer) {
-        if (!"FUNDS_TRANSFER".equals(request.getTransactionType())) {
-            return BigDecimal.ZERO;
-        }
-        
         int dbCount = transactionRepository.getMonthlyTransactionCountByType(customer.getId(), "FUNDS_TRANSFER");
         int memoryCount = getInMemoryTransactionCount(customer.getId(), "FUNDS_TRANSFER");
-        int totalCount = dbCount + memoryCount;
-
-        // Rule 011: Transactions 51+ charge ₹300 (count 50+)
-        return totalCount >= 50 ? BigDecimal.valueOf(300) : BigDecimal.ZERO;
+        int totalCount = dbCount + memoryCount + 1; // +1 for CURRENT transaction
+        
+        // Transactions 51+ charge ₹300
+        return totalCount >= 51 ? BigDecimal.valueOf(300) : BigDecimal.ZERO;
     }
 
     /**
@@ -487,7 +515,8 @@ public class ChargeCalculationService {
     
     @Transactional
     public void saveChargeCalculationResults(ChargeCalculationResult result) {
-        if (!result.isSuccess() || result.getCalculatedCharges().isEmpty()) {
+        // Save transaction even if there are no charges (for history tracking)
+        if (!result.isSuccess()) {
             return;
         }
         
@@ -501,12 +530,24 @@ public class ChargeCalculationService {
             transaction.setTransactionType(result.getTransactionType());
             transaction.setAmount(result.getTransactionAmount());
             transaction.setTransactionDate(result.getCalculationTimestamp());
-            transaction.setChannel(Transaction.Channel.API);
+            
+            // Set channel from result, default to API if not provided
+            if (result.getChannel() != null && !result.getChannel().isEmpty()) {
+                try {
+                    transaction.setChannel(Transaction.Channel.valueOf(result.getChannel().toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    transaction.setChannel(Transaction.Channel.API); // Fallback to API
+                }
+            } else {
+                transaction.setChannel(Transaction.Channel.API);
+            }
+            
             transaction.setStatus(Transaction.Status.PROCESSED);
             transaction.setProcessedAt(LocalDateTime.now());
             
             transaction = transactionRepository.save(transaction);
             
+            // Save charge calculations only if there are any charges
             for (ChargeCalculationDetail detail : result.getCalculatedCharges()) {
                 ChargeCalculation calculation = new ChargeCalculation();
                 calculation.setTransactionId(transaction.getId());
@@ -596,5 +637,69 @@ public class ChargeCalculationService {
             return 0;
         }
         return customerCounts.getOrDefault(String.valueOf(customerId), Collections.emptyMap()).getOrDefault(transactionType, 0);
+    }
+
+    public List<TransactionHistoryDto> getTransactionHistory(String customerCode) {
+        Customer customer = customerRepository.findByCustomerCode(customerCode)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerCode));
+
+        List<Transaction> transactions = transactionRepository.findByCustomerId(customer.getId());
+
+        return transactions.stream()
+                .map(transaction -> new TransactionHistoryDto(
+                        transaction.getTransactionId(),
+                        transaction.getTransactionType(),
+                        transaction.getAmount(),
+                        transaction.getTransactionDate(),
+                        transaction.getChannel().toString(),
+                        transaction.getStatus().toString()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get paginated and filtered transaction history for a customer
+     */
+    public Page<TransactionHistoryDto> getTransactionHistoryPaged(
+            String customerCode,
+            String transactionType,
+            String channel,
+            String status,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+
+        Customer customer = customerRepository.findByCustomerCode(customerCode)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerCode));
+
+        // Convert string params to enums
+        Transaction.Channel channelEnum = channel != null ? Transaction.Channel.valueOf(channel.toUpperCase()) : null;
+        Transaction.Status statusEnum = status != null ? Transaction.Status.valueOf(status.toUpperCase()) : null;
+
+        // Create pageable with sorting
+        Sort sort = Sort.by(sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Transaction> transactionPage = transactionRepository.findByCustomerIdWithFilters(
+                customer.getId(),
+                transactionType,
+                channelEnum,
+                statusEnum,
+                startDate,
+                endDate,
+                pageable
+        );
+
+        return transactionPage.map(transaction -> new TransactionHistoryDto(
+                transaction.getTransactionId(),
+                transaction.getTransactionType(),
+                transaction.getAmount(),
+                transaction.getTransactionDate(),
+                transaction.getChannel().toString(),
+                transaction.getStatus().toString()
+        ));
     }
 }
