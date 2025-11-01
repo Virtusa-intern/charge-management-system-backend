@@ -11,110 +11,126 @@ import java.util.List;
 
 @Repository
 public interface ChargeCalculationRepository extends JpaRepository<ChargeCalculation, Long> {
-    
-    /**
-     * Find charge calculations by transaction
-     */
-    List<ChargeCalculation> findByTransactionId(Long transactionId);
-    
-    /**
-     * Find charge calculations by rule
-     */
-    List<ChargeCalculation> findByRuleId(Long ruleId);
-    
-    /**
-     * Find charge calculations by status
-     */
-    List<ChargeCalculation> findByStatus(ChargeCalculation.Status status);
-    
-    /**
-     * Check if a charge already exists for customer, rule and period
-     */
-    @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
-           "JOIN Transaction t ON cc.transactionId = t.id " +
-           "WHERE t.customerId = :customerId AND " +
-           "cc.ruleId = :ruleId AND " +
-           "cc.periodStart >= :periodStart AND " +
-           "cc.periodEnd <= :periodEnd")
-    boolean existsByCustomerAndRuleAndPeriod(
-        @Param("customerId") Long customerId,
-        @Param("ruleId") Long ruleId,
-        @Param("periodStart") LocalDate periodStart,
-        @Param("periodEnd") LocalDate periodEnd
-    );
-    
-    /**
-     * Get total charges for a customer in a period
-     */
-    @Query("SELECT SUM(cc.calculatedAmount) FROM ChargeCalculation cc " +
-           "JOIN Transaction t ON cc.transactionId = t.id " +
-           "WHERE t.customerId = :customerId AND " +
-           "cc.periodStart >= :periodStart AND " +
-           "cc.periodEnd <= :periodEnd AND " +
-           "cc.status = 'CALCULATED'")
-    java.math.BigDecimal getTotalChargesForCustomerInPeriod(
-        @Param("customerId") Long customerId,
-        @Param("periodStart") LocalDate periodStart,
-        @Param("periodEnd") LocalDate periodEnd
-    );
-    
-    /**
-     * Find charge calculations by customer and period
-     */
-    @Query("SELECT cc FROM ChargeCalculation cc " +
-           "JOIN Transaction t ON cc.transactionId = t.id " +
-           "WHERE t.customerId = :customerId AND " +
-           "cc.periodStart >= :periodStart AND " +
-           "cc.periodEnd <= :periodEnd " +
-           "ORDER BY cc.createdAt DESC")
-    List<ChargeCalculation> findChargesByCustomerAndPeriod(
-        @Param("customerId") Long customerId,
-        @Param("periodStart") LocalDate periodStart,
-        @Param("periodEnd") LocalDate periodEnd
-    );
-    
-    /**
-     * Get charge calculations pending for settlement
-     */
-    @Query("SELECT cc FROM ChargeCalculation cc WHERE " +
-           "cc.status = 'CALCULATED' AND " +
-           "cc.appliedAt IS NULL")
-    List<ChargeCalculation> findPendingChargesForSettlement();
 
-    @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
-           "JOIN Transaction t ON cc.transactionId = t.id " +
-           "WHERE t.customerId = :customerId AND " +
-           "cc.ruleId = :ruleId AND " +
-           "cc.createdAt >= :startDate AND " +
-           "cc.status != 'REVERSED'")
-    boolean existsBiMonthlyChargeForCustomerAndRule(
-        @Param("customerId") Long customerId,
-        @Param("ruleId") Long ruleId,
-        @Param("startDate") LocalDate startDate
-    );
+       /**
+        * Find charge calculations by transaction
+        */
+       List<ChargeCalculation> findByTransactionId(Long transactionId);
 
-    /**
-     * Check if monthly charge already exists for customer and rule in current month
-     */
-    @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
-           "JOIN Transaction t ON cc.transactionId = t.id " +
-           "WHERE t.customerId = :customerId AND " +
-           "cc.ruleId = :ruleId AND " +
-           "YEAR(cc.createdAt) = YEAR(CURRENT_DATE) AND " +
-           "MONTH(cc.createdAt) = MONTH(CURRENT_DATE) AND " +
-           "cc.status != 'REVERSED'")
-    boolean existsMonthlyChargeForCustomerAndRule(
-        @Param("customerId") Long customerId,
-        @Param("ruleId") Long ruleId
-    );
+       /**
+        * Find charge calculations by rule
+        */
+       List<ChargeCalculation> findByRuleId(Long ruleId);
 
-    /**
-     * Get top rules by usage count
-     */
-    @Query("SELECT r.ruleCode, r.ruleName, COUNT(cc) as usageCount " +
-           "FROM ChargeCalculation cc " +
-           "JOIN ChargeRule r ON cc.ruleId = r.id " +
-           "GROUP BY r.id, r.ruleCode, r.ruleName " +
-           "ORDER BY usageCount DESC")
-    List<Object[]> findTopRulesByUsage();
+       /**
+        * Find charge calculations by status
+        */
+       List<ChargeCalculation> findByStatus(ChargeCalculation.Status status);
+
+       /**
+        * Check if a charge already exists for customer, rule and period
+        */
+       @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
+                     "JOIN Transaction t ON cc.transactionId = t.id " +
+                     "WHERE t.customerId = :customerId AND " +
+                     "cc.ruleId = :ruleId AND " +
+                     "cc.periodStart >= :periodStart AND " +
+                     "cc.periodEnd <= :periodEnd")
+       boolean existsByCustomerAndRuleAndPeriod(
+                     @Param("customerId") Long customerId,
+                     @Param("ruleId") Long ruleId,
+                     @Param("periodStart") LocalDate periodStart,
+                     @Param("periodEnd") LocalDate periodEnd);
+
+       /**
+        * Get total charges for a customer in a period
+        */
+       @Query("SELECT SUM(cc.calculatedAmount) FROM ChargeCalculation cc " +
+                     "JOIN Transaction t ON cc.transactionId = t.id " +
+                     "WHERE t.customerId = :customerId AND " +
+                     "cc.periodStart >= :periodStart AND " +
+                     "cc.periodEnd <= :periodEnd AND " +
+                     "cc.status = 'CALCULATED'")
+       java.math.BigDecimal getTotalChargesForCustomerInPeriod(
+                     @Param("customerId") Long customerId,
+                     @Param("periodStart") LocalDate periodStart,
+                     @Param("periodEnd") LocalDate periodEnd);
+
+       /**
+        * Find charge calculations by customer and period
+        */
+       @Query("SELECT cc FROM ChargeCalculation cc " +
+                     "JOIN Transaction t ON cc.transactionId = t.id " +
+                     "WHERE t.customerId = :customerId AND " +
+                     "cc.periodStart >= :periodStart AND " +
+                     "cc.periodEnd <= :periodEnd " +
+                     "ORDER BY cc.createdAt DESC")
+       List<ChargeCalculation> findChargesByCustomerAndPeriod(
+                     @Param("customerId") Long customerId,
+                     @Param("periodStart") LocalDate periodStart,
+                     @Param("periodEnd") LocalDate periodEnd);
+
+       /**
+        * Get charge calculations pending for settlement
+        */
+       @Query("SELECT cc FROM ChargeCalculation cc WHERE " +
+                     "cc.status = 'CALCULATED' AND " +
+                     "cc.appliedAt IS NULL")
+       List<ChargeCalculation> findPendingChargesForSettlement();
+
+       @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
+                     "JOIN Transaction t ON cc.transactionId = t.id " +
+                     "WHERE t.customerId = :customerId AND " +
+                     "cc.ruleId = :ruleId AND " +
+                     "cc.createdAt >= :startDate AND " +
+                     "cc.status != 'REVERSED'")
+       boolean existsBiMonthlyChargeForCustomerAndRule(
+                     @Param("customerId") Long customerId,
+                     @Param("ruleId") Long ruleId,
+                     @Param("startDate") LocalDate startDate);
+
+       /**
+        * Find charge calculations created between two timestamps
+        */
+       List<ChargeCalculation> findByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
+
+       /**
+        * Check if monthly charge already exists for customer and rule in current month
+        */
+       @Query("SELECT COUNT(cc) > 0 FROM ChargeCalculation cc " +
+                     "JOIN Transaction t ON cc.transactionId = t.id " +
+                     "WHERE t.customerId = :customerId AND " +
+                     "cc.ruleId = :ruleId AND " +
+                     "YEAR(cc.createdAt) = YEAR(CURRENT_DATE) AND " +
+                     "MONTH(cc.createdAt) = MONTH(CURRENT_DATE) AND " +
+                     "cc.status != 'REVERSED'")
+       boolean existsMonthlyChargeForCustomerAndRule(
+                     @Param("customerId") Long customerId,
+                     @Param("ruleId") Long ruleId);
+
+       /**
+        * Get top rules by usage count
+        */
+       @Query("SELECT r.ruleCode, r.ruleName, COUNT(cc) as usageCount " +
+                     "FROM ChargeCalculation cc " +
+                     "JOIN ChargeRule r ON cc.ruleId = r.id " +
+                     "GROUP BY r.id, r.ruleCode, r.ruleName " +
+                     "ORDER BY usageCount DESC")
+       List<Object[]> findTopRulesByUsage();
+
+       /**
+        * Count charge calculations by rule code
+        */
+       @Query("SELECT COUNT(cc) FROM ChargeCalculation cc " +
+                     "JOIN ChargeRule r ON cc.ruleId = r.id " +
+                     "WHERE r.ruleCode = :ruleCode")
+       long countByRuleCode(@Param("ruleCode") String ruleCode);
+
+       /**
+        * Find charge calculations by rule code
+        */
+       @Query("SELECT cc FROM ChargeCalculation cc " +
+                     "JOIN ChargeRule r ON cc.ruleId = r.id " +
+                     "WHERE r.ruleCode = :ruleCode")
+       List<ChargeCalculation> findByRuleCode(@Param("ruleCode") String ruleCode);
 }

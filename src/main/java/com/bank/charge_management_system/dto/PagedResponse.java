@@ -1,17 +1,32 @@
 package com.bank.charge_management_system.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
  * Generic wrapper for paginated API responses
  */
+@Schema(description = "Generic wrapper for paginated API responses with metadata about total pages, size, and navigation")
 public class PagedResponse<T> {
+    @Schema(description = "List of items in the current page")
     private List<T> content;
+
+    @Schema(description = "Current page number (0-indexed)", example = "0", minimum = "0")
     private int page;
+
+    @Schema(description = "Number of items per page", example = "20", minimum = "1")
     private int size;
+
+    @Schema(description = "Total number of items across all pages", example = "150")
     private long totalElements;
+
+    @Schema(description = "Total number of pages", example = "8")
     private int totalPages;
+
+    @Schema(description = "Whether this is the first page", example = "true")
     private boolean first;
+
+    @Schema(description = "Whether this is the last page", example = "false")
     private boolean last;
 
     public PagedResponse() {

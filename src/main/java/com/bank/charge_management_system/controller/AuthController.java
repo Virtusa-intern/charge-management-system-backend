@@ -14,16 +14,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8081"})
+@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:8081" })
 public class AuthController {
 
     @Autowired
@@ -41,27 +36,14 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
-            @Valid @RequestBody LoginRequest loginRequest,
-            BindingResult bindingResult) {
-        
-        try {
-            // Validate request
-            if (bindingResult.hasErrors()) {
-                List<String> errors = bindingResult.getFieldErrors()
-                    .stream()
-                    .map(FieldError::getDefaultMessage)
-                    .collect(Collectors.toList());
-                return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Validation failed: " + String.join(", ", errors), 400));
-            }
+            @Valid @RequestBody LoginRequest loginRequest) {
 
-            // Authenticate user
+        try {
+            // Authenticate user (validation is now handled by GlobalExceptionHandler)
             Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    loginRequest.getUsername(),
-                    loginRequest.getPassword()
-                )
-            );
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getUsername(),
+                            loginRequest.getPassword()));
 
             // Set authentication in security context
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -72,28 +54,27 @@ public class AuthController {
             // Get user details
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             User user = userRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
             // Build response
             LoginResponse loginResponse = new LoginResponse(
-                jwt,
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getRole().name(),
-                jwtUtils.getExpirationTime()
-            );
+                    jwt,
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getRole().name(),
+                    jwtUtils.getExpirationTime());
 
             return ResponseEntity.ok(ApiResponse.success("Login successful", loginResponse));
 
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Invalid username or password", 401));
+                    .body(ApiResponse.error("Invalid username or password", 401));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Login failed: " + e.getMessage(), 500));
+                    .body(ApiResponse.error("Login failed: " + e.getMessage(), 500));
         }
     }
 
@@ -106,11 +87,11 @@ public class AuthController {
         try {
             // Clear security context
             SecurityContextHolder.clearContext();
-            
+
             return ResponseEntity.ok(ApiResponse.success("Logout successful", "User logged out successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Logout failed: " + e.getMessage(), 500));
+                    .body(ApiResponse.error("Logout failed: " + e.getMessage(), 500));
         }
     }
 
@@ -122,15 +103,15 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserDto>> getCurrentUser() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            
+
             if (authentication == null || !authentication.isAuthenticated()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("User not authenticated", 401));
+                        .body(ApiResponse.error("User not authenticated", 401));
             }
 
             String username = authentication.getName();
             User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
             UserDto userDto = new UserDto();
             userDto.setId(user.getId());
@@ -147,7 +128,7 @@ public class AuthController {
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Failed to get current user: " + e.getMessage(), 500));
+                    .body(ApiResponse.error("Failed to get current user: " + e.getMessage(), 500));
         }
     }
 
@@ -161,10 +142,10 @@ public class AuthController {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
                 boolean isValid = jwtUtils.validateToken(token);
-                
+
                 return ResponseEntity.ok(ApiResponse.success("Token validation completed", isValid));
             }
-            
+
             return ResponseEntity.ok(ApiResponse.success("No token provided", false));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.success("Token validation failed", false));

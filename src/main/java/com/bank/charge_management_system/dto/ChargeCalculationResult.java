@@ -1,14 +1,16 @@
 package com.bank.charge_management_system.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 
+@Schema(description = "Response containing the result of charge calculation for a transaction, including all applicable charges and total")
 public class ChargeCalculationResult {
-    
+
     public String getTransactionId() {
         return transactionId;
     }
@@ -105,25 +107,45 @@ public class ChargeCalculationResult {
         this.calculationSummary = calculationSummary;
     }
 
+    @Schema(description = "Transaction identifier", example = "TXN20240101123456")
     private String transactionId;
+
+    @Schema(description = "Customer code", example = "CUST001")
     private String customerCode;
+
+    @Schema(description = "Transaction type", example = "ATM_WITHDRAWAL")
     private String transactionType;
+
+    @Schema(description = "Original transaction amount", example = "5000.00")
     private BigDecimal transactionAmount;
+
+    @Schema(description = "Transaction channel", example = "ATM", allowableValues = { "ATM", "ONLINE", "BRANCH",
+            "MOBILE", "API" })
     private String channel; // Store the channel from request
-    
+
+    @Schema(description = "List of all calculated charges for this transaction")
     private List<ChargeCalculationDetail> calculatedCharges = new ArrayList<>();
+
+    @Schema(description = "Total charges amount", example = "125.00")
     private BigDecimal totalCharges = BigDecimal.ZERO;
-    
+
+    @Schema(description = "Whether calculation was successful", example = "true")
     private boolean success;
+
+    @Schema(description = "Calculation status message", example = "Charges calculated successfully")
     private String message;
-    
+
+    @Schema(description = "Timestamp when calculation was performed", example = "2024-01-15T14:30:00", format = "date-time")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime calculationTimestamp;
-    
+
     // Summary information
+    @Schema(description = "Number of rules that were applicable", example = "2")
     private int applicableRulesCount;
+
+    @Schema(description = "Human-readable summary of calculation", example = "Applied 2 rule(s). Total: ₹125.00 (ATMWD001: ₹100.00 + SRVCHG01: ₹25.00)")
     private String calculationSummary;
-    
+
     // Helper method to add charge
     public void addCharge(ChargeCalculationDetail charge) {
         if (this.calculatedCharges == null) {
@@ -136,7 +158,7 @@ public class ChargeCalculationResult {
         this.totalCharges = this.totalCharges.add(charge.getChargeAmount());
         this.applicableRulesCount = this.calculatedCharges.size();
     }
-    
+
     // Helper method to build summary
     public void generateSummary() {
         if (calculatedCharges == null || calculatedCharges.isEmpty()) {
