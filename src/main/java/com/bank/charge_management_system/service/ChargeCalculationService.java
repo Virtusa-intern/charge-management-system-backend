@@ -175,7 +175,6 @@ public class ChargeCalculationService {
      * Rule 002: Monthly Charges - Savings Account = ₹25/month
      */
     private BigDecimal calculateRule002_MonthlySavings(TransactionRequest request, Customer customer, ChargeRule rule) {
-        // ✅ FIX: Only apply for specific transaction type
         if (!"MONTHLY_SAVINGS_CHARGE".equals(request.getTransactionType())) {
             return BigDecimal.ZERO;
         }
@@ -199,7 +198,6 @@ public class ChargeCalculationService {
      * Rule 003: Bi-Monthly Charges - Current Account (Corporate) = 5% of bi-monthly average
      */
     private BigDecimal calculateRule003_CorporateAccount(TransactionRequest request, Customer customer, ChargeRule rule) {
-        // ✅ FIX: Only apply for specific transaction type
         if (!"CORPORATE_BI_MONTHLY_CHARGE".equals(request.getTransactionType())) {
             return BigDecimal.ZERO;
         }
